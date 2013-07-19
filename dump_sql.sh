@@ -10,18 +10,68 @@
 # Configuration des variables du scripts
 ################################################################################################################
 
+destination="/var/backups/db"
+config_file="/etc/mysql/debian.cnf"
+while getopts ":c:d:h" opt; do
+  case $opt in
+    d) destination=$OPTARG 
+      ;;
+    c) config_file=$OPTARG 
+      ;;
+    h) show_help
+       exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+       exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+
+#check if config file is given
+if [ -z $config_file ]
+then
+    echo "-c  the conig file is required" >&2
+    exit 1
+fi
+
+# check if config file exist
+if [ ! -f  $config_file ]
+then
+    echo "-s Le fichie de config  $config_file n'existe pas " >&2
+    exit 1
+fi
+
+# Check if destination dir is configured
+if [ -z destination ]
+then
+    echo "-d  the destination is required" >&2
+    exit 1
+fi
+
+# if destination dir doesnot exist we create it 
+if [ ! -d $destination  ] 
+then
+   mkdir -p $destination
+fi
+
+
+
+
+
 # Dossier destiné a recevoir les dump 
 # des bases de données (pas de slash de fin).
-DUMP_PATH=/tmp/test
+DUMP_PATH=$destination
 
 #
 #Chemin du fichier de conf de mysql de debian
-DEBIANCNF=/etc/mysql/debian.cnf
+DEBIANCNF=$config_file
 
-# Informations base de donnée locale
-DB_HOST=$(cat ${DEBIANCNF}|grep -m 1 host | cut -d"=" -f2|sed -e 's/^ *//g' -e 's/ *$//g');
-DB_USER=$(cat ${DEBIANCNF}|grep -m 1 user | cut -d"=" -f2|sed -e 's/^ *//g' -e 's/ *$//g');
-DB_PWD=$(cat ${DEBIANCNF}|grep -m 1 password | cut -d"=" -f2|sed -e 's/^ *//g' -e 's/ *$//g');
 
 # Liste des bases de données à exclure du dump
 # Ajouter autant de ligne que nécessaire.
@@ -62,7 +112,7 @@ nodataTables[20]='index_section'
 nodataTables[21]='index_stat_search'
 nodataTables[22]='index_stat_word'
 nodataTables[23]='index_words'
-nodataTables[24]='tx_realurl_chastcache'
+nodataTables[24]='tx_realurl_chashcache'
 nodataTables[25]='tx_realurl_errorlog'
 nodataTables[26]='tx_realurl_pathcache'
 nodataTables[27]='tx_realurl_uniqalias'
@@ -70,6 +120,23 @@ nodataTables[28]='tx_realurl_urldecodecache'
 nodataTables[29]='tx_realurl_urlencodecache'
 nodataTables[30]='sys_log'
 nodataTables[31]='sys_history'
+nodataTables[32]='cache_extensions'
+nodataTables[33]='tt_news_cache'
+nodataTables[34]='cf_cache_hash'
+nodataTables[35]='cf_cache_hash_tags'
+nodataTables[36]='cf_cache_pages_tags'
+nodataTables[37]='cf_cache_pagesection'
+nodataTables[38]='cf_extbase_object'
+nodataTables[39]='cf_cache_pagesection_tags'
+nodataTables[40]='cf_extbase_reflection'
+nodataTables[41]='cf_extbase_reflection_tags'
+nodataTables[42]='cf_workspaces_cache_tags'
+nodataTables[43]='cf_extbase_object_tags'
+nodataTables[44]='cf_workspaces_cache'
+nodataTables[45]='cf_tt_news_cache_tags'
+nodataTables[46]='cf_tt_news_cache'
+nodataTables[47]='cf_tx_solr_tags'
+nodataTables[48]='cf_tx_solr'
 
 #fonction utilitaire pour verifier si un élément existe dans un tableau
 notContainsElement () {
@@ -87,7 +154,7 @@ mkdir "$DUMP_PATH/$dirname"
 #On place dans un tableau le nom de toutes les bases de données du serveur
 #On peut choisir ici d'exclure certaines bases de données de la sauvegarde grâce à la clause LIKE
 #Ex : -e "show databases LIKE 'blog_%'"
-databases=( $(mysql -h "$DB_HOST" -u "$DB_USER" --password="$DB_PWD" -e "show databases" | grep -v Database) )
+databases=( $(mysql  --defaults-file=$DEBIANCNF -e "show databases" | grep -v Database) )
 
 
 #Pour chacune des bases de données trouvées ...
@@ -99,7 +166,7 @@ for database in ${databases[@]}
         #... on crée dans le dossier temporaire un dossier portant le nom de la base
                 mkdir "${DUMP_PATH}/${dirname}/${database}"
         #... on récupère chacune des tables de cette base de données dans un tableau ...
-                tables=( $(mysql $database -h $DB_HOST -u $DB_USER --password=$DB_PWD -e 'show tables' | grep -v Tables_in) )
+                tables=( $(mysql $database --defaults-file=$DEBIANCNF -e 'show tables' | grep -v Tables_in) )
                 #... et on parcourt chacune de ces tables ...
                 for table in ${tables[@]}
                 do
@@ -110,11 +177,11 @@ for database in ${databases[@]}
                         if notContainsElement "$table"  "${nodataTables[@]}"
                         then
                           	#... que l'on dump avec mysqldump dans un fichier portant le nom de la table dans le dossier de la bdd parcourue
-						    $(mysqldump -h $DB_HOST -u $DB_USER --password=$DB_PWD --quick --add-locks --lock-tables --extended-insert $database $table > ${DUMP_PATH}/${dirname}/${database}/${table}.sql)
+						    $(mysqldump --defaults-file=$DEBIANCNF --quick --add-locks --lock-tables --extended-insert $database $table > ${DUMP_PATH}/${dirname}/${database}/${table}.sql)
 				
                         else
                         	#... que l'on dump avec mysqldump dans un fichier portant le nom de la table dans le dossier de la bdd parcourue mais sans les données
-						    $(mysqldump -h $DB_HOST -u $DB_USER --password=$DB_PWD --quick --add-locks --lock-tables --no-data $database $table > ${DUMP_PATH}/${dirname}/${database}/${table}.sql)
+						    $(mysqldump --defaults-file=$DEBIANCNF --quick --add-locks --lock-tables --no-data $database $table > ${DUMP_PATH}/${dirname}/${database}/${table}.sql)
 				
                         fi
                         
