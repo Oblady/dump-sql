@@ -2,8 +2,8 @@
 ###############################################################################################################
 # Script de dump/archivage de l'ensemble des base de donnée d'un serveur
 # Copyleft : Sylvain Doison (sylvain@oblady.fr)
-# Copyleft : Sébastien THIBAULT aka Beleneglorion (belen@hinatachii.com)
-# Version : 1.1 
+# Copyleft : Sébastien Thibault aka Beleneglorion (belen@hinatachii.com)
+# Version : 2.0-alpha 
 ###############################################################################################################
 
 ################################################################################################################
