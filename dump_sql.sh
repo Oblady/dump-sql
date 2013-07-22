@@ -10,6 +10,20 @@
 # Configuration des variables du scripts
 ################################################################################################################
 
+function show_help()
+{
+echo ===== AIDE =====
+echo "-h affiche l'aide"
+echo "-c (facultatif) fichier de config des acces mysql "
+echo "-d (facultatif) dossier de destination du backup"
+
+
+
+
+
+}
+
+
 destination="/var/backups/db"
 config_file="/etc/mysql/debian.cnf"
 while getopts ":c:d:h" opt; do
@@ -31,6 +45,7 @@ while getopts ":c:d:h" opt; do
       ;;
   esac
 done
+
 
 
 #check if config file is given
