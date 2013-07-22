@@ -181,7 +181,7 @@ for database in ${databases[@]}
         #... on crée dans le dossier temporaire un dossier portant le nom de la base
                 mkdir "${DUMP_PATH}/${dirname}/${database}"
         #... on récupère chacune des tables de cette base de données dans un tableau ...
-                tables=( $(mysql $database --defaults-file=$DEBIANCNF -e 'show tables' | grep -v Tables_in) )
+                tables=( $(mysql --defaults-file=${DEBIANCNF} ${database} -e 'show tables' | grep -v Tables_in) )
                 #... et on parcourt chacune de ces tables ...
                 for table in ${tables[@]}
                 do
